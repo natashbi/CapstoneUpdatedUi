@@ -608,10 +608,10 @@ const ConsultationSlipDoc = ({ consultation, member, dependent, copy }) => {
   <div className="consultation-slip bg-white border-2 border-gray-800 p-8 mb-4 max-w-2xl mx-auto text-[13px] font-mono" style={{ fontFamily: 'Georgia, serif' }}>
     {/* Header */}
     <div className="flex items-start gap-4 mb-4">
-      <div className="w-16 h-16 rounded-full bg-emerald-900 flex items-center justify-center text-yellow-400 flex-shrink-0 border-2 border-gray-800 overflow-hidden">
+      <div className="w-16 h-16 flex items-center justify-center flex-shrink-0">
         {!logoError
-          ? <img src="/logos/WCLogo.png" alt="WeCare" className="w-full h-full object-cover" onError={() => setLogoError(true)} />
-          : <Heart className="w-8 h-8" fill="currentColor" />
+          ? <img src="/logos/WCLogo.png" alt="WeCare" className="w-full h-full object-contain" onError={() => setLogoError(true)} />
+          : <Heart className="w-10 h-10 text-emerald-700" fill="currentColor" />
         }
       </div>
       <div className="flex-1 text-center">

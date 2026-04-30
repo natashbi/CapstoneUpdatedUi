@@ -2,7 +2,8 @@ import { useState, useRef } from 'react';
 import {
   ChevronRight, AlertCircle, Sparkles, UserPlus, AlertTriangle,
   Shield, Stethoscope, Activity, Heart, Clock, CheckCircle2,
-  User, Plus, Trash2
+  User, Plus, Trash2, Lock, Eye, EyeOff, Check, ArrowLeft,
+  KeyRound, X, Mail
 } from 'lucide-react';
 import { api } from '../services/api.js';
 
@@ -23,6 +24,10 @@ const LoginScreen = ({ onLogin, onRegister }) => {
   });
   const [regError, setRegError] = useState('');
   const [regSuccess, setRegSuccess] = useState(false);
+  const [regStep, setRegStep] = useState(1);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
   const photoInputRef = useRef(null);
   const depPhotoRefs = useRef({});
   const depValidIdRefs = useRef({});
@@ -103,6 +108,18 @@ const LoginScreen = ({ onLogin, onRegister }) => {
     }));
   };
 
+  const handleNext = () => {
+    setRegError('');
+    if (!reg.photo) { setRegError('Please upload a photo to proceed.'); return; }
+    if (reg.dependents.length > 4) { setRegError('You can only register with up to 4 dependents.'); return; }
+    const invalidDependent = reg.dependents.find(d => !d.name?.trim() || !d.age);
+    if (invalidDependent) { setRegError('Please fill in both name and age for all dependents.'); return; }
+    if (!reg.lastName || !reg.firstName || !reg.middleName || !reg.employeeId || !reg.department || !reg.email || !reg.phone || !reg.age) {
+      setRegError('Please complete all required fields (marked with *).'); return;
+    }
+    setRegStep(2);
+  };
+
   const handleRegister = async () => {
     setRegError('');
     if (!reg.photo) { setRegError('Please upload a photo to proceed.'); return; }
@@ -136,15 +153,17 @@ const LoginScreen = ({ onLogin, onRegister }) => {
       <div className="absolute top-0 right-0 w-96 h-96 bg-yellow-200 rounded-full blur-3xl opacity-30 -translate-y-1/2 translate-x-1/2" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-300 rounded-full blur-3xl opacity-30 translate-y-1/2 -translate-x-1/2" />
 
-      {/* ─── Master card: FIXED 1000 × 650 px, never resizes ─── */}
-      <div className="relative w-[1000px] h-[650px] flex flex-row overflow-hidden rounded-3xl shadow-2xl border border-emerald-100 bg-white">
+      {/* ─── Master card: 1000 px wide, height adapts to mode ─── */}
+      <div className={`relative w-[1000px] flex flex-row overflow-hidden rounded-3xl shadow-2xl border border-emerald-100 bg-white transition-all duration-500 ease-in-out ${
+        mode === 'register' ? 'h-[780px]' : 'h-[650px]'
+      }`}>
 
-        {/* ── LEFT: Green branding panel — collapses to w-0 on register ── */}
-        <div className={`flex-shrink-0 overflow-hidden transition-all duration-500 ease-in-out ${
-          mode === 'register' ? 'w-0 opacity-0' : 'w-[400px] opacity-100'
+        {/* ── LEFT: Green branding panel — 50% width, collapses on register ── */}
+        <div className={`overflow-hidden transition-all duration-500 ease-in-out ${
+          mode === 'register' ? 'w-0 opacity-0' : 'w-1/2 opacity-100'
         }`}>
-          {/* Inner wrapper is always 400 px so content never reflows during animation */}
-          <div className="w-[400px] h-full bg-gradient-to-br from-emerald-800 via-emerald-700 to-emerald-900 p-10 relative flex flex-col">
+          {/* Inner wrapper matches parent width for smooth animations */}
+          <div className="w-full h-full bg-gradient-to-br from-emerald-800 via-emerald-700 to-emerald-900 p-10 relative flex flex-col">
             <div className="absolute top-0 right-0 w-56 h-56 bg-yellow-400 rounded-full blur-3xl opacity-20 pointer-events-none" />
 
             <div className="relative flex flex-col h-full">
@@ -187,7 +206,7 @@ const LoginScreen = ({ onLogin, onRegister }) => {
           </div>
         </div>
 
-        {/* ── RIGHT: Form panel — flex-1 auto-fills the remaining width ── */}
+        {/* ── RIGHT: Form panel — fills remaining space (full width when left panel collapses) ── */}
         <div className="flex-1 flex flex-col overflow-hidden bg-white">
 
           {/* Tab switcher — pinned, never scrolls */}
@@ -219,48 +238,118 @@ const LoginScreen = ({ onLogin, onRegister }) => {
 
             {/* ════ REGISTRATION SUCCESS ════ */}
             {regSuccess ? (
-              <div className="h-full flex flex-col items-center justify-center text-center animate-fadeInUp">
-                <div className="w-16 h-16 mx-auto bg-emerald-100 rounded-full flex items-center justify-center mb-4">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-700" />
-                </div>
-                <h2 className="font-display text-2xl font-semibold text-emerald-900 mb-2">Registration Submitted!</h2>
-                <p className="text-gray-500 text-sm mb-5 max-w-sm">
-                  Your registration is pending approval by the WeCare Coordinator. You'll be notified once activated.
-                </p>
-                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-5 text-left w-full max-w-sm">
-                  <div className="flex items-start gap-3">
-                    <Clock className="w-4 h-4 text-yellow-700 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-semibold text-yellow-900 text-xs mb-1">What happens next?</div>
-                      <ul className="text-xs text-yellow-800 space-y-0.5">
-                        <li>• Coordinator reviews your registration</li>
-                        <li>• You'll receive an email once approved</li>
-                        <li>• After approval, sign in with your credentials</li>
-                      </ul>
-                    </div>
+              <div className="h-full flex flex-col items-center justify-center animate-fadeInUp w-full max-w-md mx-auto">
+
+                {/* Animated check hero with pulse ring */}
+                <div className="relative mb-5">
+                  <span className="absolute inset-0 rounded-full bg-emerald-300 opacity-40 animate-ping" />
+                  <div className="relative w-20 h-20 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center shadow-xl shadow-emerald-500/40 animate-scaleIn">
+                    <CheckCircle2 className="w-11 h-11 text-white" strokeWidth={2.5} />
                   </div>
                 </div>
+
+                <h2 className="font-display text-3xl font-semibold text-emerald-900 mb-1.5 text-center">
+                  Welcome aboard{reg.firstName ? `, ${reg.firstName}` : ''}!
+                </h2>
+                <p className="text-gray-500 text-sm mb-5 text-center max-w-sm">
+                  Your registration has been submitted successfully. We'll let you know once it's reviewed.
+                </p>
+
+                {/* Submission summary */}
+                <div className="bg-emerald-50/70 border border-emerald-100 rounded-xl px-3 py-2.5 mb-4 w-full flex items-center gap-3">
+                  {reg.photo ? (
+                    <img src={reg.photo} alt="" className="w-10 h-10 rounded-lg object-cover border-2 border-emerald-200 flex-shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                      <User className="w-5 h-5 text-emerald-700" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0 text-left">
+                    <div className="text-[10px] uppercase tracking-wider text-emerald-700 font-bold">Application for</div>
+                    <div className="text-sm font-semibold text-gray-900 truncate">
+                      {reg.firstName} {reg.lastName}{reg.suffix ? ` ${reg.suffix}` : ''}
+                    </div>
+                    <div className="text-[11px] text-gray-500 truncate">{reg.email}</div>
+                  </div>
+                  <div className="bg-yellow-100 text-yellow-900 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md flex-shrink-0 flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> Pending
+                  </div>
+                </div>
+
+                {/* Status timeline */}
+                <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 mb-4 w-full text-left">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-3">What happens next?</div>
+                  <div className="space-y-3">
+                    {[
+                      { Icon: CheckCircle2, label: 'Application submitted', sub: 'Just now', state: 'done' },
+                      { Icon: Clock, label: 'Coordinator review', sub: 'Usually 1–3 business days', state: 'current' },
+                      { Icon: Mail, label: 'Email notification', sub: "We'll notify you once approved", state: 'upcoming' },
+                      { Icon: KeyRound, label: 'Sign in to WeCare', sub: 'Use your registered credentials', state: 'upcoming' },
+                    ].map((step, i, arr) => (
+                      <div key={i} className="flex items-start gap-3 relative">
+                        {i < arr.length - 1 && (
+                          <span className={`absolute left-3 top-6 w-0.5 h-[calc(100%+0.25rem)] -translate-x-1/2 ${
+                            step.state === 'done' ? 'bg-emerald-300' : 'bg-gray-200'
+                          }`} />
+                        )}
+                        <div className={`relative w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          step.state === 'done' ? 'bg-emerald-600' :
+                          step.state === 'current' ? 'bg-yellow-100 ring-4 ring-yellow-50' :
+                          'bg-gray-100'
+                        }`}>
+                          <step.Icon className={`w-3 h-3 ${
+                            step.state === 'done' ? 'text-white' :
+                            step.state === 'current' ? 'text-yellow-700' :
+                            'text-gray-400'
+                          }`} strokeWidth={2.5} />
+                        </div>
+                        <div className="flex-1 min-w-0 pt-0.5">
+                          <div className={`text-xs font-semibold ${
+                            step.state === 'upcoming' ? 'text-gray-500' : 'text-gray-900'
+                          }`}>{step.label}</div>
+                          <div className="text-[11px] text-gray-500">{step.sub}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Help */}
+                <p className="text-[11px] text-gray-400 mb-4 text-center">
+                  Questions? Email{' '}
+                  <a href="mailto:wecareteam12345@gmail.com" className="text-emerald-700 hover:text-emerald-900 font-semibold">
+                    wecareteam12345@gmail.com
+                  </a>
+                </p>
+
                 <button
                   onClick={() => {
                     setRegSuccess(false);
                     setMode('signin');
+                    setRegStep(1);
                     setReg({ lastName: '', firstName: '', middleName: '', suffix: '', employeeId: '', department: '', email: '', phone: '', age: '', gender: 'Female', civilStatus: 'Single', password: '', confirmPassword: '', photo: null, dependents: [] });
                   }}
-                  className="w-full max-w-sm bg-emerald-800 hover:bg-emerald-900 text-white py-2.5 rounded-xl font-semibold text-sm transition-colors"
+                  className="w-full bg-emerald-800 hover:bg-emerald-900 text-white py-3 rounded-xl font-semibold text-sm transition-all shadow-lg shadow-emerald-800/20 flex items-center justify-center gap-2"
                 >
-                  Back to Sign In
+                  <ArrowLeft className="w-4 h-4" /> Back to Sign In
                 </button>
               </div>
 
             /* ════ SIGN IN FORM ════ */
             ) : mode === 'signin' ? (
-              <div className="flex flex-col justify-start animate-fadeInUp pt-2">
-                {/* Logo - clean, no container */}
-                <div className="mb-2">
+              <div className="flex items-center justify-center w-full">
+                <div className="flex flex-col justify-start animate-fadeInUp pt-2 w-full max-w-[520px]">
+                {/* Logo - lifted to align with the top box */}
+                <div className="mb-0 h-14 flex items-start overflow-visible">
                   {!logoError ? (
-                    <img src="/logos/WCLogo.png" alt="WeCare Logo" className="w-20 h-30 object-contain" onError={() => setLogoError(true)} />
+                    <img
+                      src="/logos/WCLogo.png"
+                      alt="WeCare Logo"
+                      className="w-20 h-20 object-contain object-top -translate-y-5"
+                      onError={() => setLogoError(true)}
+                    />
                   ) : (
-                    <Heart className="w-20 h-20 text-emerald-600" fill="currentColor" />
+                    <Heart className="w-20 h-20 text-emerald-600 -translate-y-12" fill="currentColor" />
                   )}
                 </div>
 
@@ -278,9 +367,43 @@ const LoginScreen = ({ onLogin, onRegister }) => {
                     <input type="text" value={username} onChange={e => setUsername(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} placeholder="Enter your username" className={iCls} />
                   </div>
                   <div>
-                    <label className={lCls}>Password</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Password</label>
+                      <button
+                        type="button"
+                        onClick={() => setShowForgot(v => !v)}
+                        className="text-[11px] text-emerald-700 hover:text-emerald-900 font-semibold transition-colors"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
                     <input type="password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} placeholder="Enter your password" className={iCls} />
                   </div>
+
+                  {showForgot && (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-start gap-2.5 animate-slideIn">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                        <KeyRound className="w-3.5 h-3.5 text-emerald-700" />
+                      </div>
+                      <div className="flex-1 text-xs">
+                        <div className="font-semibold text-emerald-900 mb-0.5">Need to reset your password?</div>
+                        <p className="text-emerald-800 leading-relaxed">
+                          Please contact your WeCare Coordinator or the system Admin. They can reset it for you from the User Management page.
+                        </p>
+                        <a href="mailto:wecareteam12345@gmail.com" className="inline-flex items-center gap-1 mt-1.5 text-emerald-700 hover:text-emerald-900 font-semibold">
+                          <Mail className="w-3 h-3" /> wecareteam12345@gmail.com
+                        </a>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowForgot(false)}
+                        className="text-emerald-600 hover:text-emerald-900 flex-shrink-0 p-1 rounded hover:bg-emerald-100"
+                        aria-label="Dismiss"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
 
                   {loginError && (
                     <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2 animate-slideIn">
@@ -310,11 +433,15 @@ const LoginScreen = ({ onLogin, onRegister }) => {
                     </div>
                   </div>
                 </div>
+                </div>
               </div>
 
             /* ════ REGISTER FORM (full-width card) ════ */
             ) : (
-              <div className="animate-fadeInUp">
+              <div className="w-full">
+
+              {regStep === 1 ? (
+                <div key="step-1" className="animate-fadeInUp w-full">
 
                 {/* Header row + warning side-by-side */}
                 <div className="flex items-start gap-6 mb-5">
@@ -324,6 +451,19 @@ const LoginScreen = ({ onLogin, onRegister }) => {
                     </div>
                     <h1 className="font-display text-2xl font-semibold text-emerald-900 leading-tight">Join WeCare Program</h1>
                     <p className="text-gray-500 text-xs mt-1">For permanent employees of Wesleyan University.</p>
+
+                    {/* Step progress */}
+                    <div className="flex items-center gap-2 mt-3">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-full bg-emerald-700 text-white text-[10px] font-bold flex items-center justify-center ring-4 ring-emerald-100">1</div>
+                        <span className="text-[11px] text-emerald-900 font-semibold">Profile</span>
+                      </div>
+                      <div className="w-8 h-0.5 bg-gray-200 rounded-full" />
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-full bg-gray-200 text-gray-500 text-[10px] font-bold flex items-center justify-center">2</div>
+                        <span className="text-[11px] text-gray-400 font-semibold">Password</span>
+                      </div>
+                    </div>
                   </div>
                   <div className="flex-1 bg-yellow-50 border-2 border-yellow-200 rounded-xl p-3 flex items-start gap-2.5">
                     <AlertTriangle className="w-4 h-4 text-yellow-700 flex-shrink-0 mt-0.5" />
@@ -411,10 +551,10 @@ const LoginScreen = ({ onLogin, onRegister }) => {
                   </div>
                 </div>
 
-                {/* ── Personal + Security in one row: 5 columns ── */}
+                {/* ── Personal — 3 cols (password lives on Step 2) ── */}
                 <div className="mb-5">
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Personal &amp; Security</p>
-                  <div className="grid grid-cols-5 gap-3">
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Personal</p>
+                  <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className={lCls}>Age <span className="text-red-500">*</span></label>
                       <input type="number" min="18" value={reg.age} onChange={e => setReg(p => ({ ...p, age: e.target.value }))} placeholder="25" className={iCls} />
@@ -433,14 +573,6 @@ const LoginScreen = ({ onLogin, onRegister }) => {
                         <option value="Married">Married</option>
                         <option value="Widowed">Widowed</option>
                       </select>
-                    </div>
-                    <div>
-                      <label className={lCls}>Password <span className="text-red-500">*</span></label>
-                      <input type="password" value={reg.password} onChange={e => setReg(p => ({ ...p, password: e.target.value }))} placeholder="Min. 8 characters" className={iCls} />
-                    </div>
-                    <div>
-                      <label className={lCls}>Confirm Password <span className="text-red-500">*</span></label>
-                      <input type="password" value={reg.confirmPassword} onChange={e => setReg(p => ({ ...p, confirmPassword: e.target.value }))} placeholder="Re-type password" className={iCls} />
                     </div>
                   </div>
                 </div>
@@ -523,19 +655,179 @@ const LoginScreen = ({ onLogin, onRegister }) => {
                   </div>
                 )}
 
-                {/* Submit + note */}
+                {/* Next button */}
                 <div className="flex items-center gap-4">
                   <button
-                    onClick={handleRegister}
-                    disabled={loading}
-                    className="flex-1 bg-emerald-800 hover:bg-emerald-900 text-white py-2.5 rounded-xl font-semibold text-sm transition-all shadow-lg shadow-emerald-800/20 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    onClick={handleNext}
+                    className="flex-1 bg-emerald-800 hover:bg-emerald-900 text-white py-2.5 rounded-xl font-semibold text-sm transition-all shadow-lg shadow-emerald-800/20 flex items-center justify-center gap-2"
                   >
-                    {loading ? 'Submitting…' : <><span>Submit Registration</span><ChevronRight className="w-4 h-4" /></>}
+                    <span>Next</span><ChevronRight className="w-4 h-4" />
                   </button>
                   <p className="text-[11px] text-gray-400 max-w-[160px] leading-relaxed">
-                    Your account will be activated once approved by the Coordinator.
+                    Step 1 of 2 — set your password on the next step.
                   </p>
                 </div>
+
+                </div>
+              ) : (
+                <div key="step-2" className="animate-slideInRight w-full">
+                  <div className="max-w-md mx-auto pt-2">
+
+                    {/* Step progress */}
+                    <div className="flex items-center justify-center gap-2 mb-5">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center border-2 border-emerald-400">
+                          <Check className="w-3 h-3" strokeWidth={3} />
+                        </div>
+                        <span className="text-xs text-emerald-700 font-semibold">Profile</span>
+                      </div>
+                      <div className="w-12 h-0.5 bg-emerald-400 rounded-full" />
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-6 h-6 rounded-full bg-emerald-700 text-white text-xs font-bold flex items-center justify-center ring-4 ring-emerald-100">2</div>
+                        <span className="text-xs text-emerald-900 font-semibold">Password</span>
+                      </div>
+                    </div>
+
+                    {/* Lock icon hero */}
+                    <div className="flex justify-center mb-3">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-700 to-emerald-900 flex items-center justify-center shadow-xl shadow-emerald-800/30 animate-scaleIn">
+                        <Lock className="w-7 h-7 text-yellow-300" />
+                      </div>
+                    </div>
+
+                    <h2 className="font-display text-3xl font-semibold text-emerald-900 text-center mb-1.5 leading-tight">
+                      Almost there{reg.firstName ? `, ${reg.firstName}` : ''}!
+                    </h2>
+                    <p className="text-gray-500 text-sm text-center mb-5">
+                      Choose a strong password to secure your WeCare account.
+                    </p>
+
+                    {/* Registering as: summary card with edit shortcut */}
+                    <div className="bg-emerald-50/70 border border-emerald-100 rounded-xl px-3 py-2.5 mb-5 flex items-center gap-3">
+                      {reg.photo ? (
+                        <img src={reg.photo} alt="" className="w-10 h-10 rounded-lg object-cover border-2 border-emerald-200 flex-shrink-0" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                          <User className="w-5 h-5 text-emerald-700" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[10px] uppercase tracking-wider text-emerald-700 font-bold">Registering as</div>
+                        <div className="text-sm font-semibold text-gray-900 truncate">
+                          {reg.firstName} {reg.lastName}{reg.suffix ? ` ${reg.suffix}` : ''}
+                        </div>
+                        <div className="text-[11px] text-gray-500 truncate">{reg.email}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setRegError(''); setRegStep(1); }}
+                        className="text-[11px] text-emerald-700 hover:text-emerald-900 font-semibold px-2 py-1 rounded-md hover:bg-emerald-100 transition-colors flex-shrink-0"
+                      >
+                        Edit
+                      </button>
+                    </div>
+
+                    {/* Password fields */}
+                    <div className="space-y-3 mb-4">
+                      <div>
+                        <label className={lCls}>Password <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            value={reg.password}
+                            onChange={e => setReg(p => ({ ...p, password: e.target.value }))}
+                            placeholder="Enter a strong password"
+                            className={`${iCls} pr-10`}
+                            autoFocus
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(v => !v)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                            tabIndex={-1}
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className={lCls}>Confirm Password <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                          <input
+                            type={showConfirm ? 'text' : 'password'}
+                            value={reg.confirmPassword}
+                            onChange={e => setReg(p => ({ ...p, confirmPassword: e.target.value }))}
+                            onKeyDown={e => e.key === 'Enter' && handleRegister()}
+                            placeholder="Re-type your password"
+                            className={`${iCls} pr-10`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirm(v => !v)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                            tabIndex={-1}
+                            aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                          >
+                            {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Live requirements checklist */}
+                    <div className="bg-gray-50 rounded-xl border border-gray-200 px-4 py-3 mb-4">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">Password requirements</div>
+                      <div className="space-y-1.5">
+                        {[
+                          { ok: reg.password.length >= 8, text: 'At least 8 characters' },
+                          { ok: /[0-9]/.test(reg.password), text: 'Contains at least one number' },
+                          { ok: reg.password.length > 0 && reg.password === reg.confirmPassword, text: 'Both passwords match' },
+                        ].map((req, i) => (
+                          <div key={i} className={`flex items-center gap-2 text-xs transition-colors ${req.ok ? 'text-emerald-700' : 'text-gray-500'}`}>
+                            <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${req.ok ? 'bg-emerald-600' : 'bg-gray-300'}`}>
+                              <Check className={`w-2.5 h-2.5 text-white transition-opacity ${req.ok ? 'opacity-100' : 'opacity-0'}`} strokeWidth={4} />
+                            </div>
+                            <span className={req.ok ? 'font-medium' : ''}>{req.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Error */}
+                    {regError && (
+                      <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3 mb-3 flex items-start gap-2 animate-slideIn">
+                        <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-red-800">{regError}</p>
+                      </div>
+                    )}
+
+                    {/* Back + Submit */}
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => { setRegError(''); setRegStep(1); }}
+                        disabled={loading}
+                        className="px-4 py-3 rounded-xl font-semibold text-sm border-2 border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60 flex items-center gap-1.5"
+                      >
+                        <ArrowLeft className="w-4 h-4" /> Back
+                      </button>
+                      <button
+                        onClick={handleRegister}
+                        disabled={loading}
+                        className="flex-1 bg-emerald-800 hover:bg-emerald-900 text-white py-3 rounded-xl font-semibold text-sm transition-all shadow-lg shadow-emerald-800/20 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {loading ? 'Submitting…' : <><span>Submit Registration</span><ChevronRight className="w-4 h-4" /></>}
+                      </button>
+                    </div>
+
+                    <p className="text-[11px] text-gray-400 text-center mt-4">
+                      Your account will be activated once approved by the Coordinator.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               </div>
             )}

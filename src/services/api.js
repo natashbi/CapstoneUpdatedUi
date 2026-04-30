@@ -216,6 +216,32 @@ export const api = {
     return { success: true };
   },
 
+  updatePhoto: async (photo) => {
+    await asyncDelay();
+    const token = localStorage.getItem('wecare_token');
+    if (!token) throw new Error('Not authenticated');
+
+    const decoded = JSON.parse(atob(token));
+    const users = getData('users', []);
+    const user = users.find(u => u.id === decoded.id);
+    if (!user) throw new Error('User not found');
+
+    user.photo = photo;
+    saveData('users', users);
+
+    if (user.role === 'member' && user.memberId) {
+      const members = getData('members', []);
+      const member = members.find(m => m.id === user.memberId);
+      if (member) {
+        member.photo = photo;
+        saveData('members', members);
+      }
+    }
+
+    addAuditLog(user.id, 'Profile photo updated');
+    return { photo };
+  },
+
   // Members
   getMembers: async () => {
     await asyncDelay();

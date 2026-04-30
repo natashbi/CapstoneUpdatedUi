@@ -1,20 +1,13 @@
 import { useState } from 'react';
-import { Bell, AlertTriangle, Menu, Clock, UserCheck, KeyRound, ChevronDown } from 'lucide-react';
+import { Bell, AlertTriangle, Menu, Clock, UserCheck } from 'lucide-react';
 import { useNotifications } from '../context/NotificationsContext.jsx';
-import { useAppUser } from '../context/UserContext.jsx';
-import ChangePasswordModal from './shared/ChangePasswordModal.jsx';
 
 // ============ TOPBAR ============
 const TopBar = ({ title, subtitle, children, alerts = [], onMenuToggle }) => {
   const [showAlerts, setShowAlerts] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showChangePassword, setShowChangePassword] = useState(false);
   const contextAlerts = useNotifications();
-  const { user } = useAppUser();
   const allAlerts = [...contextAlerts, ...alerts];
 
-  const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '?';
-  const roleColors = { admin: 'bg-purple-100 text-purple-800', coordinator: 'bg-emerald-100 text-emerald-800', director: 'bg-yellow-100 text-yellow-900', member: 'bg-blue-100 text-blue-800' };
   return (
     <div className="bg-white border-b border-gray-200 px-8 py-5 sticky top-0 z-30">
       <div className="flex items-center justify-between gap-6">
@@ -36,10 +29,10 @@ const TopBar = ({ title, subtitle, children, alerts = [], onMenuToggle }) => {
         <div className="flex items-center gap-3 flex-shrink-0">
           {children}
 
-          {/* Notification bell */}
+          {/* Notification bell — only top-right action; profile actions live in the sidebar */}
           <div className="relative">
             <button
-              onClick={() => { setShowAlerts(!showAlerts); setShowUserMenu(false); }}
+              onClick={() => setShowAlerts(!showAlerts)}
               className="relative w-10 h-10 rounded-xl border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors"
             >
               <Bell className="w-4 h-4 text-gray-700" />
@@ -76,44 +69,7 @@ const TopBar = ({ title, subtitle, children, alerts = [], onMenuToggle }) => {
               </div>
             )}
           </div>
-
-          {/* User avatar + dropdown (Change Password only — Sign Out is in Sidebar) */}
-          {user && (
-            <div className="relative">
-              <button
-                onClick={() => { setShowUserMenu(!showUserMenu); setShowAlerts(false); }}
-                className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
-              >
-                <div className="w-7 h-7 rounded-lg overflow-hidden bg-gradient-to-br from-emerald-700 to-emerald-900 flex items-center justify-center text-yellow-300 font-bold text-xs">
-                  {user.photo
-                    ? <img src={user.photo} alt="" className="w-full h-full object-cover" />
-                    : getInitials(user.name)
-                  }
-                </div>
-                <div className="hidden md:block text-left">
-                  <div className="text-xs font-semibold text-gray-900 leading-tight">{user.name.split(' ')[0]}</div>
-                  <div className={`text-[10px] font-bold px-1.5 rounded capitalize ${roleColors[user.role] || 'bg-gray-100 text-gray-700'}`}>{user.role}</div>
-                </div>
-                <ChevronDown className="w-3 h-3 text-gray-400 hidden md:block" />
-              </button>
-              {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50">
-                  <div className="p-3 border-b border-gray-100 bg-emerald-50">
-                    <div className="text-sm font-semibold text-emerald-900">{user.name}</div>
-                    <div className="text-xs text-gray-500 capitalize">{user.role}</div>
-                  </div>
-                  <button
-                    onClick={() => { setShowUserMenu(false); setShowChangePassword(true); }}
-                    className="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
-                  >
-                    <KeyRound className="w-4 h-4 text-gray-500" /> Change Password
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
         </div>
-        {showChangePassword && <ChangePasswordModal onClose={() => setShowChangePassword(false)} />}
       </div>
     </div>
   );

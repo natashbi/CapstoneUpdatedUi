@@ -16,12 +16,27 @@ const FontLoader = () => (
       from { opacity: 0; transform: translateX(-12px); }
       to { opacity: 1; transform: translateX(0); }
     }
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(32px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes slideInLeft {
+      from { opacity: 0; transform: translateX(-32px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
     @keyframes pulse-glow {
       0%, 100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4); }
       50% { box-shadow: 0 0 0 8px rgba(234, 179, 8, 0); }
     }
     .animate-fadeInUp { animation: fadeInUp 0.4s ease-out both; }
     .animate-slideIn { animation: slideIn 0.3s ease-out both; }
+    .animate-slideInRight { animation: slideInRight 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+    .animate-slideInLeft { animation: slideInLeft 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+    .animate-scaleIn { animation: scaleIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
     .animate-pulse-glow { animation: pulse-glow 2s infinite; }
 
     .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }

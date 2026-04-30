@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   LayoutDashboard, Users, BarChart3, User,
   Stethoscope, FileSignature, Receipt, UserCog,
   History, Settings, ShieldCheck, Briefcase, Sparkles,
-  UserCheck, Heart, X, KeyRound, LogOut, ChevronUp
+  UserCheck, Heart, X, KeyRound, LogOut, ChevronUp, Camera
 } from 'lucide-react';
 import { getInitials } from '../utils/helpers.js';
+import { api } from '../services/api.js';
+import { useAppUser } from '../context/UserContext.jsx';
 import ChangePasswordModal from './shared/ChangePasswordModal.jsx';
 
 // ============ SIDEBAR ============
@@ -13,6 +15,45 @@ const Sidebar = ({ currentView, setCurrentView, user, onLogout, counts, isOpen, 
   const [logoError, setLogoError] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const photoInputRef = useRef(null);
+  const { setUser } = useAppUser();
+
+  // Close dropdown when clicking outside.
+  // Uses a data-attribute (not a ref) because sidebarContent is rendered twice
+  // (desktop + mobile) and a shared ref would point to only one of the two.
+  useEffect(() => {
+    if (!showUserMenu) return;
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('[data-user-menu]')) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showUserMenu]);
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Photo must be smaller than 2MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const dataUrl = ev.target.result;
+      try {
+        await api.updatePhoto(dataUrl);
+        const updatedUser = { ...user, photo: dataUrl };
+        if (setUser) setUser(updatedUser);
+        localStorage.setItem('wecare_user', JSON.stringify(updatedUser));
+      } catch (err) {
+        alert(err.message || 'Failed to update photo.');
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   // Role-specific menu items
   const roleMenus = {
@@ -69,18 +110,16 @@ const Sidebar = ({ currentView, setCurrentView, user, onLogout, counts, isOpen, 
       <div className="p-6 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-gradient-to-br from-emerald-700 to-emerald-900 rounded-xl flex items-center justify-center shadow-md shadow-emerald-800/20 overflow-hidden">
-              {!logoError ? (
-                <img
-                  src="/logos/WCLogo.png"
-                  alt="WeCare Logo"
-                  className="w-full h-full object-cover"
-                  onError={() => setLogoError(true)}
-                />
-              ) : (
-                <Heart className="w-5 h-5 text-yellow-300" fill="currentColor" />
-              )}
-            </div>
+            {!logoError ? (
+              <img
+                src="/logos/WCLogo.png"
+                alt="WeCare Logo"
+                className="w-11 h-11 object-contain flex-shrink-0"
+                onError={() => setLogoError(true)}
+              />
+            ) : (
+              <Heart className="w-9 h-9 text-emerald-700 flex-shrink-0" fill="currentColor" />
+            )}
             <div>
               <div className="font-display text-xl font-bold text-emerald-900 leading-none">WeCare</div>
             </div>
@@ -135,13 +174,19 @@ const Sidebar = ({ currentView, setCurrentView, user, onLogout, counts, isOpen, 
         })}
       </nav>
 
-      {/* User — clickable, opens menu with Change Password + Sign Out */}
-      <div className="p-4 border-t border-gray-100 relative">
+      {/* User — clickable, opens menu with profile actions */}
+      <div data-user-menu className="p-4 border-t border-gray-100 relative">
         {showUserMenu && (
           <div className="absolute bottom-full left-3 right-3 mb-2 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-10">
             <button
-              onClick={() => { setShowUserMenu(false); setShowChangePassword(true); }}
+              onClick={() => { setShowUserMenu(false); photoInputRef.current?.click(); }}
               className="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
+            >
+              <Camera className="w-4 h-4 text-gray-500" /> Update Profile Picture
+            </button>
+            <button
+              onClick={() => { setShowUserMenu(false); setShowChangePassword(true); }}
+              className="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left border-t border-gray-100"
             >
               <KeyRound className="w-4 h-4 text-gray-500" /> Change Password
             </button>
@@ -153,6 +198,14 @@ const Sidebar = ({ currentView, setCurrentView, user, onLogout, counts, isOpen, 
             </button>
           </div>
         )}
+
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handlePhotoChange}
+          className="hidden"
+        />
 
         <button
           onClick={() => setShowUserMenu(v => !v)}

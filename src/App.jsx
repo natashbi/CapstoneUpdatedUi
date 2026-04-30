@@ -267,7 +267,7 @@ function AppInner() {
   }
 
   return (
-    <UserContext.Provider value={{ user, onLogout: handleLogout }}>
+    <UserContext.Provider value={{ user, onLogout: handleLogout, setUser }}>
     <NotificationsContext.Provider value={alerts}>
     <SettingsContext.Provider value={settings}>
       <FontLoader />
